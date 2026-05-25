@@ -1,0 +1,26 @@
+
+lidar_node:
+  ros__parameters:
+    port: '/dev/ttyUSB0'
+    baudrate: 230400
+
+ultrasound_node:
+  ros__parameters:
+    trig_pin1: 23
+    echo_pin1: 24
+    trig_pin2: 17
+    echo_pin2: 27
+    trig_pin3: 5
+    echo_pin3: 6
+
+control_node:
+  ros__parameters:
+    kp: 1.0
+    s_filter: 0.5
+    ang_filter: 0.5
+    steering_coef: 0.5
+    servo_angle_coef: 0.35
+    servo_max: 35
+    servo_channel: 0
+    esc_channel: 7
+    pwm_frequency: 50
