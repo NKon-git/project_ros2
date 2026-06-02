@@ -71,10 +71,11 @@ class ControlNode(Node):
         #servo
         self.set_servo_angle(70)
         self.get_logger().info("esc arming")
-        self.motor.set_ms(1.0)   # 1ms = minimum
-        self.motor.setpwm(1)
+        self.motor.set_ms(1.5) 
         time.sleep(3)
-        self.motor.setpwm(0)
+        self.motor.set_ms(2)
+        time.sleep(3)
+        self.motor.set_ms(1)
         time.sleep(3)
         self.get_logger().info("esc armed")
         #subscribers to sensor data
