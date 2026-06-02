@@ -74,12 +74,12 @@ class ControlNode(Node):
 
 
         #esc arming procedure
-        self.get_logger().info('arming esc')
-        self.motor.setpwm(1)
-        time.sleep(3)
-        self.motor.setpwm(0)
-        time.sleep(3)
-        self.get_logger().info("esc armed")
+        self.motor.setpwm(0)   # neutral first
+        time.sleep(2)
+        self.motor.setpwm(1)   # full throttle
+        time.sleep(2)
+        self.motor.setpwm(0)   # back to neutral
+        time.sleep(1)
 
         #subscribers to sensor data
         lidar_data_sub= self.create_subscription(Float32MultiArray,'/distances/lidar', self.lidar_treat,10)
