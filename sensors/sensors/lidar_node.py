@@ -174,7 +174,7 @@ class LidarNode(Node):
         loop_thread.start()
 
         #publisher and upload values 
-        lidar_publisher = self.create_publisher(Float32MultiArray,'/distances/lidar',10)
+        self.lidar_publisher_ = self.create_publisher(Float32MultiArray,'/distances/lidar',10)
         self.create_timer(0.05,self.measure_callback)
 
         self.get_logger().info("lidar node ready")
@@ -182,7 +182,7 @@ class LidarNode(Node):
     def measure_callback(self):
         msg = Float32MultiArray()
         msg.data = [float(d) for d in self.lidar.ranges]
-        self.publisher_.publish(msg)
+        self.lidar_publisher_.publish(msg)
 
     def destroy_node(self):
         self.lidar.ser.close()
