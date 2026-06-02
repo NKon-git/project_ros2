@@ -71,15 +71,15 @@ class ControlNode(Node):
         #servo
         self.set_servo_angle(70)
         self.get_logger().info("esc arming")
-        self.motor.setpwm(0)   # neutral — 1.5ms
-        time.sleep(3)          # hold neutral until ESC recognizes it
+        self.motor.set_ms(1.0)   # 1ms = minimum
+        time.sleep(0.5)
 
-        #esc arming procedure
-        self.motor.setpwm(0)   # neutral first
-        time.sleep(2)
-        self.motor.setpwm(1)   # full throttle
-        time.sleep(2)
-        self.motor.setpwm(0)   # back to neutral
+        # NOW power on the ESC manually while this signal is running
+        self.get_logger().info('send minimum throttle — power on ESC now')
+        time.sleep(5)  # give you time to power on the ESC
+
+        # Wait for two beeps then move to neutral
+        self.motor.set_ms(1.5)   # neutral
         time.sleep(1)
         self.get_logger().info("esc armed")
         #subscribers to sensor data
@@ -161,6 +161,11 @@ class ESC:
     def __init__(self, pca_instance, channel):
         self.pca_instance= pca_instance
         self.channel= channel
+
+    def set_ms(self, ms):
+        ms = max(1.0, min(2.0, ms))
+        duty = int(ms / self.PERIOD_MS * 65535)
+        self.pca_instance.set_duty_cycle(self.channel, duty)
 
     def setpwm(self, taux):
         taux = -taux
