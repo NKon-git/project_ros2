@@ -177,12 +177,12 @@ class LidarNode(Node):
 
         self.get_logger().info("lidar node ready")
 
-def measure_callback(self):
-    with self.lidar.lock:
-        ranges = list(self.lidar.ranges.values())  # values not keys
-    msg = Float32MultiArray()
-    msg.data = [float(d) for d in ranges]
-    self.lidar_publisher_.publish(msg)
+    def measure_callback(self):
+        with self.lidar.lock:
+            ranges = list(self.lidar.ranges.values())  # values not keys
+        msg = Float32MultiArray()
+        msg.data = [float(d) for d in ranges]
+        self.lidar_publisher_.publish(msg)
 
     def destroy_node(self):
         self.lidar.ser.close()
