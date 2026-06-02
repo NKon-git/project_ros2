@@ -67,7 +67,7 @@ class ControlNode(Node):
         # hardware init
         #motor
         i2c = busio.I2C(scl=board.SCL, sda=board.SDA)
-        self.pca = PCA9685(i2c)
+        self.pca = PCA9685(i2c, address=0x42)
         self.pca.frequency = pwm_frequency
         self.motor = ESC(self.pca, esc_channel)
         self.motor.setpwm(0)
