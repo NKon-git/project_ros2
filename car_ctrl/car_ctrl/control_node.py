@@ -70,7 +70,7 @@ class ControlNode(Node):
         
         #servo
         self.set_servo_angle(70)
-
+        self.get_logger().info("esc arming")
         self.motor.setpwm(0)   # neutral — 1.5ms
         time.sleep(3)          # hold neutral until ESC recognizes it
 
@@ -81,7 +81,7 @@ class ControlNode(Node):
         time.sleep(2)
         self.motor.setpwm(0)   # back to neutral
         time.sleep(1)
-
+        self.get_logger().info("esc armed")
         #subscribers to sensor data
         lidar_data_sub= self.create_subscription(Float32MultiArray,'/distances/lidar', self.lidar_treat,10)
         ultrasound_data_sub= self.create_subscription(Float32MultiArray,'/distances/ultrasound', self.ultrasound_treat,10)
