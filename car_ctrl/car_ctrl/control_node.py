@@ -71,7 +71,8 @@ class ControlNode(Node):
         #servo
         self.set_servo_angle(70)
 
-
+        self.motor.setpwm(0)   # neutral — 1.5ms
+        time.sleep(3)          # hold neutral until ESC recognizes it
 
         #esc arming procedure
         self.motor.setpwm(0)   # neutral first
