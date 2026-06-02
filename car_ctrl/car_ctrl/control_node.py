@@ -72,29 +72,10 @@ class ControlNode(Node):
         self.set_servo_angle(70)
         self.get_logger().info("esc arming")
         self.motor.set_ms(1.0)   # 1ms = minimum
-        time.sleep(0.5)
-
-        # NOW power on the ESC manually while this signal is running
-        self.get_logger().info('send minimum throttle — power on ESC now')
-        time.sleep(5)  # give you time to power on the ESC
-        #préparation de calibration si nécessaire
-        print("calibration")
-        self.moteur.setpwm(0)
-        print("pwm neutre")	
-        time.sleep(5)
-        self.moteur.setpwm(0)
-        time.sleep(1)
-        self.moteur.setpwm(1)
-        print("pwm avant")
-        time.sleep(5)
-        self.moteur.setpwm(0)
-        time.sleep(1)
-        self.moteur.setpwm(-1)
-        print("pwm arriere")
-        time.sleep(5)
-        self.moteur.setpwm(0)
-
-        time.sleep(1)
+        self.motor.setpwm(1)
+        time.sleep(3)
+        self.motor.setpwm(0)
+        time.sleep(3)
         self.get_logger().info("esc armed")
         #subscribers to sensor data
         lidar_data_sub= self.create_subscription(Float32MultiArray,'/distances/lidar', self.lidar_treat,10)
