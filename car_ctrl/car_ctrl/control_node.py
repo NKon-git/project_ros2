@@ -77,9 +77,23 @@ class ControlNode(Node):
         # NOW power on the ESC manually while this signal is running
         self.get_logger().info('send minimum throttle — power on ESC now')
         time.sleep(5)  # give you time to power on the ESC
+        #préparation de calibration si nécessaire
+        print("calibration")
+        self.moteur.setpwm(0)
+        print("pwm neutre")	
+        time.sleep(5)
+        self.moteur.setpwm(0)
+        time.sleep(1)
+        self.moteur.setpwm(1)
+        print("pwm avant")
+        time.sleep(5)
+        self.moteur.setpwm(0)
+        time.sleep(1)
+        self.moteur.setpwm(-1)
+        print("pwm arriere")
+        time.sleep(5)
+        self.moteur.setpwm(0)
 
-        # Wait for two beeps then move to neutral
-        self.motor.set_ms(1.5)   # neutral
         time.sleep(1)
         self.get_logger().info("esc armed")
         #subscribers to sensor data
