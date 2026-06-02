@@ -41,7 +41,7 @@ class UltrasoundNode(Node):
         self.results = [None,None,None]
 
         #create publisher
-        ultrasound_pub= self.create_publisher(Float32MultiArray, '/distances/ultrasound', 10)
+        self.ultrasound_pub= self.create_publisher(Float32MultiArray, '/distances/ultrasound', 10)
 
         self.create_timer(0.05, self.measure_callback)
         
@@ -67,7 +67,7 @@ class UltrasoundNode(Node):
             t.join()
         msg = Float32MultiArray()
         msg.data = [float(d) if d is not None else -1.0 for d in self.results]
-        self.publisher_.publish(msg)
+        self.ultrasound_pub.publish(msg)
 
     def destroy_node(self): #properly destroys node
         lgpio.gpiochip_close(self.h)
