@@ -118,31 +118,26 @@ class LD14P:
         self.lock = threading.Lock()
 
 
-    def update_loop(self):
-
-        # self.t_prev = time.time()
+def update_loop(self):
+    with self.ser:
         current_bytes = bytearray()
         last_two_bytes_received = deque([b'\x00', b'\x00'], maxlen=2)
         while True:
             try:
                 if self.ser.in_waiting > 0:
-                    byte = self.ser.read(1) # Read a byte from the serial port
-                    last_two_bytes_received.append(byte)    #Add it to the queue to watch for new packet starting sequence
-                    if(last_two_bytes_received[0], last_two_bytes_received[1]) == (LD14P.START_BYTE, LD14P.VER_LEN):    #if starting sequence is detected
-                    # print("Start of new packet detected.")
-                      
-                        if len(current_bytes) > 0:  #if there are already some bytes recorded
-                            new_packet = Packet(current_bytes)  #compose them into a packet object
-                            if new_packet.complete: #if that's complete
-                                # print(f"new packet: {new_packet}, packet dropped: {self.packets_dropped}")
-                                self.update_ranges(new_packet)  #process the packet
-                            
-                        current_bytes.clear()   #clear the array to collect new bytes
-                        current_bytes += last_two_bytes_received[0] #add starting byte
-                    current_bytes += byte   #add a byte to the current bytearray
+                    byte = self.ser.read(1)
+                    last_two_bytes_received.append(byte)
+                    if (last_two_bytes_received[0], last_two_bytes_received[1]) == (LD14P.START_BYTE, LD14P.VER_LEN):
+                        if len(current_bytes) > 0:
+                            new_packet = Packet(current_bytes)
+                            if new_packet.complete:
+                                self.update_ranges(new_packet)
+                        current_bytes.clear()
+                        current_bytes += last_two_bytes_received[0]
+                    current_bytes += byte
             except Exception as e:
-                print(f'Serial error: {e}')
-                break
+                print(f'Read error: {e}')
+                continue  # keep going instead of breaking
 
     def update_ranges(self, packet: Packet):
         for dp in packet.datapoints:
@@ -182,12 +177,12 @@ class LidarNode(Node):
 
         self.get_logger().info("lidar node ready")
 
-    def measure_callback(self):
-        with self.lidar.lock:
-            ranges = list(self.lidar.ranges.values())
-        msg = Float32MultiArray()
-        msg.data = [float(d) for d in ranges]
-        self.lidar_publisher_.publish(msg)
+def measure_callback(self):
+    with self.lidar.lock:
+        ranges = list(self.lidar.ranges.values())  # values not keys
+    msg = Float32MultiArray()
+    msg.data = [float(d) for d in ranges]
+    self.lidar_publisher_.publish(msg)
 
     def destroy_node(self):
         self.lidar.ser.close()
