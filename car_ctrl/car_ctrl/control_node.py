@@ -7,6 +7,7 @@ from adafruit_motor import servo
 import busio
 import time
 from std_msgs.msg import Float32MultiArray
+import smbus2
 
 #creates node
 class ControlNode(Node):
