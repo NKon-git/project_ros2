@@ -119,17 +119,18 @@ class LD14P:
 
 
     def update_loop(self):
-        with self.ser:
-            # self.t_prev = time.time()
-            current_bytes = bytearray()
-            last_two_bytes_received = deque([b'\x00', b'\x00'], maxlen=2)
-            while True:
+
+        # self.t_prev = time.time()
+        current_bytes = bytearray()
+        last_two_bytes_received = deque([b'\x00', b'\x00'], maxlen=2)
+        while True:
+            try:
                 if self.ser.in_waiting > 0:
                     byte = self.ser.read(1) # Read a byte from the serial port
                     last_two_bytes_received.append(byte)    #Add it to the queue to watch for new packet starting sequence
                     if(last_two_bytes_received[0], last_two_bytes_received[1]) == (LD14P.START_BYTE, LD14P.VER_LEN):    #if starting sequence is detected
-                        # print("Start of new packet detected.")
-                        
+                    # print("Start of new packet detected.")
+                      
                         if len(current_bytes) > 0:  #if there are already some bytes recorded
                             new_packet = Packet(current_bytes)  #compose them into a packet object
                             if new_packet.complete: #if that's complete
@@ -139,7 +140,9 @@ class LD14P:
                         current_bytes.clear()   #clear the array to collect new bytes
                         current_bytes += last_two_bytes_received[0] #add starting byte
                     current_bytes += byte   #add a byte to the current bytearray
-    
+            except Exception as e:
+                self.get_logger().error(f'Serial error: {e}')
+                break
 
     def update_ranges(self, packet: Packet):
         for dp in packet.datapoints:
