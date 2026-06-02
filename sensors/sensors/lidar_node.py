@@ -118,26 +118,26 @@ class LD14P:
         self.lock = threading.Lock()
 
 
-def update_loop(self):
-    with self.ser:
-        current_bytes = bytearray()
-        last_two_bytes_received = deque([b'\x00', b'\x00'], maxlen=2)
-        while True:
-            try:
-                if self.ser.in_waiting > 0:
-                    byte = self.ser.read(1)
-                    last_two_bytes_received.append(byte)
-                    if (last_two_bytes_received[0], last_two_bytes_received[1]) == (LD14P.START_BYTE, LD14P.VER_LEN):
-                        if len(current_bytes) > 0:
-                            new_packet = Packet(current_bytes)
-                            if new_packet.complete:
-                                self.update_ranges(new_packet)
-                        current_bytes.clear()
-                        current_bytes += last_two_bytes_received[0]
-                    current_bytes += byte
-            except Exception as e:
-                print(f'Read error: {e}')
-                continue  # keep going instead of breaking
+    def update_loop(self):
+        with self.ser:
+            current_bytes = bytearray()
+            last_two_bytes_received = deque([b'\x00', b'\x00'], maxlen=2)
+            while True:
+                try:
+                    if self.ser.in_waiting > 0:
+                        byte = self.ser.read(1)
+                        last_two_bytes_received.append(byte)
+                        if (last_two_bytes_received[0], last_two_bytes_received[1]) == (LD14P.START_BYTE, LD14P.VER_LEN):
+                            if len(current_bytes) > 0:
+                                new_packet = Packet(current_bytes)
+                                if new_packet.complete:
+                                    self.update_ranges(new_packet)
+                            current_bytes.clear()
+                            current_bytes += last_two_bytes_received[0]
+                        current_bytes += byte
+                except Exception as e:
+                    print(f'Read error: {e}')
+                    continue  # keep going instead of breaking
 
     def update_ranges(self, packet: Packet):
         for dp in packet.datapoints:
