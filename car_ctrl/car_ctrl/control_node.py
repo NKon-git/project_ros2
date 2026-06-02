@@ -71,7 +71,7 @@ class ControlNode(Node):
         #servo
         self.set_servo_angle(70)
         self.get_logger().info("esc arming")
-        self.motor.setpwm(0)   # neutral — 1.5ms
+        self.motor.setpwm(1)   # neutral — 1.5ms
         time.sleep(3)          # hold neutral until ESC recognizes it
 
         #esc arming procedure
