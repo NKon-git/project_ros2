@@ -163,7 +163,7 @@ class ESC:
         taux=-taux
         impulsion_ms = self.NEUTRAL_MS+(taux*self.MAX_RANGE)
 
-        if abs(impulsion_ms)<self.NEUTRAL_MS+self.DEAD_ZONE: #sets neutral if command too small 
+        if abs(impulsion_ms-self.NEUTRAL_MS)<self.DEAD_ZONE: #sets neutral if command too small 
             impulsion_ms =self.NEUTRAL_MS
         else: #clamps value between min and max
             impulsion_ms = max(self.NEUTRAL_MS - self.MAX_RANGE, min(self.NEUTRAL_MS + self.MAX_RANGE, impulsion_ms))
