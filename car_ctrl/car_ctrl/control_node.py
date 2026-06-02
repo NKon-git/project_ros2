@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 import rclpy #import ros lib for nodes
 from rclpy.node import Node
-import board
-from adafruit_pca9685 import PCA9685
-from adafruit_motor import servo
-import busio
 import time
 from std_msgs.msg import Float32MultiArray
 import smbus2
@@ -67,15 +63,13 @@ class ControlNode(Node):
 
         # hardware init
         #motor
-        i2c = busio.I2C(scl=board.SCL, sda=board.SDA)
-        self.pca = PCA9685(i2c,address=0x42)
-        self.pca.frequency = pwm_frequency
+        self.pca = PCA9685Direct(bus=1, address=0x42)
+        self.pca.set_frequency(pwm_frequency)
         self.motor = ESC(self.pca, esc_channel)
         self.motor.setpwm(0)
         
         #servo
-        self.servo_direction = servo.Servo(self.pca.channels[0],min_pulse=1000, max_pulse=2000)
-        self.servo_direction.angle = 70
+        self.set_servo_angle(70)
 
 
 
@@ -93,7 +87,14 @@ class ControlNode(Node):
 
         #control loop
         self.create_timer(0.05, self.control_callback)
-    
+
+    def set_servo_angle(self, angle):
+        angle = max(0, min(180, angle))
+        # Map angle to pulse width (1ms-2ms)
+        ms = 1.39 + (angle / 180.0)
+        duty = int(ms / 20.0 * 65535)
+        self.pca.set_duty_cycle(0, duty)  # channel 0
+
     def lidar_treat(self, msg: Float32MultiArray):
         self.lidar0=max(self.lidarmin,min(msg.data[0],self.lidarmax))
         self.lidar45=max(self.lidarmin,min(msg.data[1],self.lidarmax))
@@ -104,11 +105,11 @@ class ControlNode(Node):
 
     def ultrasound_treat(self, msg: Float32MultiArray):
         self.lidar_life=1
-        if msg[0]!= -1:
+        if msg.data[0]!= -1:
             self.ultraleft=msg.data[0]
-        if msg[1]!= -1:
+        if msg.data[1]!= -1:
             self.ultramid=msg.data[1]
-        if msg[2]!= -1:
+        if msg.data[2]!= -1:
             self.ultraright=msg.data[2]
 
     def control_callback(self):
@@ -130,8 +131,8 @@ class ControlNode(Node):
 
         #sets servo value
         side_command = servo_angle*(1-self.angle_filter)+self.prev_side_value*self.angle_filter
-        self.servo_direction.angle = side_command
-
+        self.set_servo_angle(side_command)
+        
         #speed control
         speed_command=max(0.0, min(1.0,self.P*(front_value*(1-self.speed_filter)+self.previous_speed*self.speed_filter)/20))
         self.motor.setpwm(speed_command)
@@ -148,6 +149,7 @@ class ControlNode(Node):
                        
 #esc control class
 class ESC:
+
     #constants in ms 
     NEUTRAL_MS = 1.5 #ms
     PERIOD_MS = 20.0    #signal period for ESC in ms
@@ -158,21 +160,55 @@ class ESC:
     def __init__(self, pca_instance, channel):
         self.pca_instance= pca_instance
         self.channel= channel
-        self.freq = pca_instance.frequency
-    
-    def setpwm(self,taux):
-        taux=-taux
-        impulsion_ms = self.NEUTRAL_MS+(taux*self.MAX_RANGE)
 
-        if abs(impulsion_ms-self.NEUTRAL_MS)<self.DEAD_ZONE: #sets neutral if command too small 
-            impulsion_ms =self.NEUTRAL_MS
-        else: #clamps value between min and max
-            impulsion_ms = max(self.NEUTRAL_MS - self.MAX_RANGE, min(self.NEUTRAL_MS + self.MAX_RANGE, impulsion_ms))
-
-        self.pca_instance.channels[self.channel].duty_cycle = int(impulsion_ms/self.PERIOD_MS*self.RESOLUTION)
+    def setpwm(self, taux):
+        taux = -taux
+        impulsion_ms = self.NEUTRAL_MS + (taux * self.MAX_RANGE)
+        if abs(impulsion_ms - self.NEUTRAL_MS) < self.DEAD_ZONE:
+            impulsion_ms = self.NEUTRAL_MS
+        else:
+            impulsion_ms = max(self.NEUTRAL_MS - self.MAX_RANGE, 
+                          min(self.NEUTRAL_MS + self.MAX_RANGE, impulsion_ms))
+        duty = int(impulsion_ms / self.PERIOD_MS * 65535)
+        self.pca_instance.set_duty_cycle(self.channel, duty)
 
     def stop(self):
         self.setpwm(0)
+
+class PCA9685Direct:
+    """Direct smbus2 implementation of PCA9685 control"""
+    def __init__(self, bus=1, address=0x42):
+        self.bus = smbus2.SMBus(bus)
+        self.address = address
+        # Reset
+        self.bus.write_byte_data(self.address, 0x00, 0x00)
+        time.sleep(0.1)
+    
+    def set_frequency(self, freq):
+        # Calculate prescale
+        prescale = int(25000000.0 / (4096.0 * freq) - 1)
+        # Sleep mode to set prescale
+        self.bus.write_byte_data(self.address, 0x00, 0x10)
+        self.bus.write_byte_data(self.address, 0xFE, prescale)
+        # Wake up
+        self.bus.write_byte_data(self.address, 0x00, 0x00)
+        time.sleep(0.1)
+        self.bus.write_byte_data(self.address, 0x00, 0xa1)
+
+    def set_pwm(self, channel, on, off):
+        reg = 0x06 + 4 * channel
+        self.bus.write_byte_data(self.address, reg, on & 0xFF)
+        self.bus.write_byte_data(self.address, reg + 1, on >> 8)
+        self.bus.write_byte_data(self.address, reg + 2, off & 0xFF)
+        self.bus.write_byte_data(self.address, reg + 3, off >> 8)
+
+    def set_duty_cycle(self, channel, duty):
+        # duty is 0-65535, convert to 0-4095
+        off = int(duty * 4095 / 65535)
+        self.set_pwm(channel, 0, off)
+
+    def deinit(self):
+        self.bus.close()
 
 def main(args=None):
     rclpy.init(args=args) #initiates ros coms
