@@ -141,7 +141,7 @@ class LD14P:
                         current_bytes += last_two_bytes_received[0] #add starting byte
                     current_bytes += byte   #add a byte to the current bytearray
             except Exception as e:
-                self.get_logger().error(f'Serial error: {e}')
+                print(f'Serial error: {e}')
                 break
 
     def update_ranges(self, packet: Packet):
