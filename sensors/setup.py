@@ -24,7 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            "lidar_node = sensors.lidar_node:main"
+            "lidar_node = sensors.lidar_node:main",
             "ultrasound_node = sensors.ultrasound_node:main"
         ],
     },
