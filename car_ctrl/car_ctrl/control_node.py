@@ -70,14 +70,8 @@ class ControlNode(Node):
         
         #servo
         self.set_servo_angle(70)
-        self.get_logger().info("esc arming")
+        self.get_logger().info("esc arming-power on")
         self.motor.set_ms(1.5) 
-        time.sleep(3)
-        self.get_logger().info("esc front")
-        self.motor.set_ms(2)
-        time.sleep(3)
-        self.get_logger().info("esc back")
-        self.motor.set_ms(1)
         time.sleep(3)
         self.get_logger().info("esc armed")
         #subscribers to sensor data
