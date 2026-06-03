@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
-import board
-from adafruit_pca9685 import PCA9685
-from adafruit_motor import servo
-import busio
 import time
+import lgpio
 from std_msgs.msg import Float32MultiArray
-
+#updated
 class ControlNode(Node):
 
     def __init__(self):
@@ -48,36 +45,28 @@ class ControlNode(Node):
         self.prev_side_value = 70.0
 
         # servo data
-        self.servo0 = 70
         self.declare_parameter('servo_max', 35)
         self.servomax = self.get_parameter('servo_max').value
 
-        self.declare_parameter('esc_channel', 7)
-        self.declare_parameter('servo_channel', 0)
-        self.declare_parameter('pwm_frequency', 50)
-        esc_channel = self.get_parameter('esc_channel').value
-        servo_channel = self.get_parameter('servo_channel').value
-        pwm_frequency = self.get_parameter('pwm_frequency').value
+        self.declare_parameter('esc_gpio', 18)
+        self.declare_parameter('servo_gpio', 12)
+        self.esc_gpio = self.get_parameter('esc_gpio').value
+        self.servo_gpio = self.get_parameter('servo_gpio').value
 
         # hardware init
-        i2c = busio.I2C(scl=board.SCL, sda=board.SDA)
-        self.pca = PCA9685(i2c, address=0x42)
-        self.pca.frequency = pwm_frequency
-        self.motor = ESC(self.pca, esc_channel)
-        self.motor.setpwm(0)
+        self.h = lgpio.gpiochip_open(0)
+        lgpio.gpio_claim_output(self.h, self.esc_gpio)
+        lgpio.gpio_claim_output(self.h, self.servo_gpio)
 
-        self.servo_direction = servo.Servo(
-            self.pca.channels[servo_channel],
-            min_pulse=1000,
-            max_pulse=2000
-        )
-        self.servo_direction.angle = 70
+        # set initial PWM — 50Hz, neutral pulse
+        self.set_us(self.esc_gpio, 1500)
+        self.set_us(self.servo_gpio, 1500)
 
         # esc arming
         self.get_logger().info('arming esc')
-        self.motor.setpwm(1)
+        self.set_us(self.esc_gpio, 2000)
         time.sleep(3)
-        self.motor.setpwm(0)
+        self.set_us(self.esc_gpio, 1500)
         time.sleep(3)
         self.get_logger().info('esc armed')
 
@@ -87,6 +76,17 @@ class ControlNode(Node):
 
         # control loop
         self.create_timer(0.05, self.control_callback)
+        self.get_logger().info('control node ready')
+
+    def set_us(self, gpio, pulse_us):
+        """Set PWM pulse width in microseconds at 50Hz"""
+        # 50Hz = 20000us period
+        # duty cycle in millionths (0-1000000)
+        duty = int(pulse_us / 20000.0 * 1000000)
+        lgpio.tx_pwm(self.h, gpio, 50, duty / 10000.0)
+
+    def ms_to_us(self, ms):
+        return int(ms * 1000)
 
     def lidar_treat(self, msg: Float32MultiArray):
         self.lidar0 = max(self.lidarmin, min(msg.data[0], self.lidarmax))
@@ -122,13 +122,20 @@ class ControlNode(Node):
         servo_angle = max(70 - self.servomax, min(70 + side_err * self.steering_k, 70 + self.servomax))
         side_command = servo_angle * (1 - self.angle_filter) + self.prev_side_value * self.angle_filter
         side_command = max(70 - self.servomax, min(70 + self.servomax, side_command))
-        self.servo_direction.angle = side_command
+
+        # map angle to pulse width (70° center = 1500us)
+        servo_us = int(1500 + (side_command - 70) * (500 / self.servomax))
+        servo_us = max(1000, min(2000, servo_us))
+        self.set_us(self.servo_gpio, servo_us)
 
         # speed control
         raw_speed = self.P * front_value / 20.0
         speed_command = raw_speed * (1 - self.speed_filter) + self.previous_speed * self.speed_filter
         speed_command = max(0.0, min(1.0, speed_command))
-        self.motor.setpwm(speed_command)
+
+        # map speed to pulse width (0=1500us neutral, 1=2000us full forward)
+        esc_us = int(1500 + speed_command * 500)
+        self.set_us(self.esc_gpio, esc_us)
 
         # update state
         self.prev_side_value = side_command
@@ -136,36 +143,10 @@ class ControlNode(Node):
         self.lidar_life += 0.05
 
     def destroy_node(self):
-        self.motor.stop()
-        self.pca.deinit()
+        self.set_us(self.esc_gpio, 1500)
+        self.set_us(self.servo_gpio, 1500)
+        lgpio.gpiochip_close(self.h)
         super().destroy_node()
-
-
-class ESC:
-    NEUTRAL_MS = 1.5
-    PERIOD_MS = 20.0
-    MAX_RANGE = 0.3
-    RESOLUTION = 65535
-    DEAD_ZONE = 0.01
-
-    def __init__(self, pca_instance, channel):
-        self.pca_instance = pca_instance
-        self.channel = channel
-
-    def setpwm(self, taux):
-        taux = -taux
-        impulsion_ms = self.NEUTRAL_MS + (taux * self.MAX_RANGE)
-        if abs(impulsion_ms - self.NEUTRAL_MS) < self.DEAD_ZONE:
-            impulsion_ms = self.NEUTRAL_MS
-        else:
-            impulsion_ms = max(self.NEUTRAL_MS - self.MAX_RANGE,
-                               min(self.NEUTRAL_MS + self.MAX_RANGE, impulsion_ms))
-        self.pca_instance.channels[self.channel].duty_cycle = int(
-            impulsion_ms / self.PERIOD_MS * self.RESOLUTION
-        )
-
-    def stop(self):
-        self.setpwm(0)
 
 
 def main(args=None):
