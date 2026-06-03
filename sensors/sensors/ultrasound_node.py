@@ -31,7 +31,7 @@ class UltrasoundNode(Node):
          "ECHO": self.get_parameter('echo_pin3').value},
         ]
 		
-        self.h = lgpio.gpiochip_open(0)
+        self.h = lgpio.gpiochip_open(4)
         for sensor in self.sensors:
             lgpio.gpio_claim_output(self.h, sensor["TRIG"])
             lgpio.gpio_claim_input(self.h, sensor["ECHO"])
