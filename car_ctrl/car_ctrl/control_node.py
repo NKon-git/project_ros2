@@ -119,7 +119,7 @@ class ControlNode(Node):
         lgpio.tx_servo(self.h, self.servo_gpio, servo_us)
 
         # speed control
-        raw_speed = self.P * front_value / 400.0
+        raw_speed = self.P * front_value / 1000.0
         speed_command = raw_speed * (1 - self.speed_filter) + self.previous_speed * self.speed_filter
         speed_command = max(0.0, min(1.0, speed_command))
 
