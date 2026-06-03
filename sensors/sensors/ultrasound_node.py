@@ -15,12 +15,12 @@ class UltrasoundNode(Node):
 		
 		#pins setup
         self.declare_parameter('trig_pin1', 23)
-        self.declare_parameter('trig_pin2', 17)
-        self.declare_parameter('trig_pin3', 5)
+        self.declare_parameter('trig_pin2', 27)
+        self.declare_parameter('trig_pin3', 25)
 		
-        self.declare_parameter('echo_pin1', 24)
-        self.declare_parameter('echo_pin2', 27)
-        self.declare_parameter('echo_pin3', 6)
+        self.declare_parameter('echo_pin1', 17)
+        self.declare_parameter('echo_pin2', 22)
+        self.declare_parameter('echo_pin3', 24)
 		
         self.sensors = [
         {"TRIG": self.get_parameter('trig_pin1').value,

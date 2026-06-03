@@ -12,7 +12,7 @@ class ControlNode(Node):
         self.get_logger().info('control node starting')
 
         # control parameters
-        self.declare_parameter('kp', 1)
+        self.declare_parameter('kp', 0.7)
         self.declare_parameter('s_filter', 0.5)
         self.P = self.get_parameter('kp').value
         self.speed_filter = self.get_parameter('s_filter').value
@@ -119,7 +119,7 @@ class ControlNode(Node):
         lgpio.tx_servo(self.h, self.servo_gpio, servo_us)
 
         # speed control
-        raw_speed = self.P * front_value / 20.0
+        raw_speed = self.P * front_value / 400.0
         speed_command = raw_speed * (1 - self.speed_filter) + self.previous_speed * self.speed_filter
         speed_command = max(0.0, min(1.0, speed_command))
 
