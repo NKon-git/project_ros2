@@ -15,7 +15,7 @@ ultrasound_node:
 
 control_node:
   ros__parameters:
-    kp: 0.6
+    kp: 0.4
     s_filter: 0.95
     ang_filter: 0.7
     steering_coef: 0.4
