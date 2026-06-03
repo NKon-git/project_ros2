@@ -13,7 +13,7 @@ class ControlNode(Node):
 
         # control parameters
         self.declare_parameter('kp', 0.7)
-        self.declare_parameter('s_filter', 0.5)
+        self.declare_parameter('s_filter', 0.8)
         self.P = self.get_parameter('kp').value
         self.speed_filter = self.get_parameter('s_filter').value
         self.previous_speed = 0.0
@@ -119,7 +119,7 @@ class ControlNode(Node):
         lgpio.tx_servo(self.h, self.servo_gpio, servo_us)
 
         # speed control
-        raw_speed = self.P * front_value / 1000.0
+        raw_speed = self.P * front_value / 800.0
         speed_command = raw_speed * (1 - self.speed_filter) + self.previous_speed * self.speed_filter
         speed_command = max(0.0, min(1.0, speed_command))
 
@@ -131,6 +131,7 @@ class ControlNode(Node):
         self.prev_side_value = side_command
         self.previous_speed = speed_command
         self.lidar_life += 0.05
+
 
     def destroy_node(self):
         lgpio.tx_servo(self.h, self.esc_gpio, 1500)
