@@ -19,7 +19,7 @@ control_node:
     s_filter: 0.9
     ang_filter: 0.7
     steering_coef: 0.4
-    servo_angle_coef: 0.35
+    servo_angle_coef: 0.4
     servo_max: 30
     servo_channel: 0
     esc_channel: 7
