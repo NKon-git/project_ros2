@@ -7,11 +7,11 @@ lidar_node:
 ultrasound_node:
   ros__parameters:
     trig_pin1: 23
-    echo_pin1: 24
-    trig_pin2: 17
-    echo_pin2: 27
-    trig_pin3: 5
-    echo_pin3: 6
+    echo_pin1: 17
+    trig_pin2: 27
+    echo_pin2: 22
+    trig_pin3: 25
+    echo_pin3: 24
 
 control_node:
   ros__parameters:
