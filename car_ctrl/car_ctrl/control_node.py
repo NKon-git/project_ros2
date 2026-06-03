@@ -4,7 +4,7 @@ from rclpy.node import Node
 import time
 import lgpio
 from std_msgs.msg import Float32MultiArray
-#updated
+
 class ControlNode(Node):
 
     def __init__(self):
@@ -44,7 +44,7 @@ class ControlNode(Node):
         self.pre_front_value = 200
         self.prev_side_value = 70.0
 
-        # servo data
+        # servo
         self.declare_parameter('servo_max', 35)
         self.servomax = self.get_parameter('servo_max').value
 
@@ -53,20 +53,20 @@ class ControlNode(Node):
         self.esc_gpio = self.get_parameter('esc_gpio').value
         self.servo_gpio = self.get_parameter('servo_gpio').value
 
-        # hardware init
-        self.h = lgpio.gpiochip_open(0)
+        # hardware init — gpiochip4 is the main header on Pi 5
+        self.h = lgpio.gpiochip_open(4)
         lgpio.gpio_claim_output(self.h, self.esc_gpio)
         lgpio.gpio_claim_output(self.h, self.servo_gpio)
 
-        # set initial PWM — 50Hz, neutral pulse
-        self.set_us(self.esc_gpio, 1500)
-        self.set_us(self.servo_gpio, 1500)
+        # neutral signal
+        lgpio.tx_servo(self.h, self.esc_gpio, 1500)
+        lgpio.tx_servo(self.h, self.servo_gpio, 1500)
 
         # esc arming
         self.get_logger().info('arming esc')
-        self.set_us(self.esc_gpio, 2000)
+        lgpio.tx_servo(self.h, self.esc_gpio, 2000)
         time.sleep(3)
-        self.set_us(self.esc_gpio, 1500)
+        lgpio.tx_servo(self.h, self.esc_gpio, 1500)
         time.sleep(3)
         self.get_logger().info('esc armed')
 
@@ -77,16 +77,6 @@ class ControlNode(Node):
         # control loop
         self.create_timer(0.05, self.control_callback)
         self.get_logger().info('control node ready')
-
-    def set_us(self, gpio, pulse_us):
-        """Set PWM pulse width in microseconds at 50Hz"""
-        # 50Hz = 20000us period
-        # duty cycle in millionths (0-1000000)
-        duty = int(pulse_us / 20000.0 * 1000000)
-        lgpio.tx_pwm(self.h, gpio, 50, duty / 10000.0)
-
-    def ms_to_us(self, ms):
-        return int(ms * 1000)
 
     def lidar_treat(self, msg: Float32MultiArray):
         self.lidar0 = max(self.lidarmin, min(msg.data[0], self.lidarmax))
@@ -126,7 +116,7 @@ class ControlNode(Node):
         # map angle to pulse width (70° center = 1500us)
         servo_us = int(1500 + (side_command - 70) * (500 / self.servomax))
         servo_us = max(1000, min(2000, servo_us))
-        self.set_us(self.servo_gpio, servo_us)
+        lgpio.tx_servo(self.h, self.servo_gpio, servo_us)
 
         # speed control
         raw_speed = self.P * front_value / 20.0
@@ -135,7 +125,7 @@ class ControlNode(Node):
 
         # map speed to pulse width (0=1500us neutral, 1=2000us full forward)
         esc_us = int(1500 + speed_command * 500)
-        self.set_us(self.esc_gpio, esc_us)
+        lgpio.tx_servo(self.h, self.esc_gpio, esc_us)
 
         # update state
         self.prev_side_value = side_command
@@ -143,8 +133,8 @@ class ControlNode(Node):
         self.lidar_life += 0.05
 
     def destroy_node(self):
-        self.set_us(self.esc_gpio, 1500)
-        self.set_us(self.servo_gpio, 1500)
+        lgpio.tx_servo(self.h, self.esc_gpio, 1500)
+        lgpio.tx_servo(self.h, self.servo_gpio, 1500)
         lgpio.gpiochip_close(self.h)
         super().destroy_node()
 
